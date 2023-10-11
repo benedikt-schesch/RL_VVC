@@ -6,28 +6,31 @@ import numpy as np
 
 class Agent:
     def __init__(self, config, env):
+        torch.manual_seed(config["seed"])
 
-        torch.manual_seed(config['seed'])
+        self.lr = config["algo"]["lr"]
+        self.copy_steps = config["algo"]["copy_steps"]
+        self.eps_len = config["algo"]["eps_len"]  # length of epsilon greedy exploration
+        self.eps_max = config["algo"]["eps_max"]
+        self.eps_min = config["algo"]["eps_min"]
+        self.discount = config["algo"]["discount"]
+        self.batch_size = config["algo"]["batch_size"]
 
-        self.lr = config['algo']['lr']
-        self.copy_steps = config['algo']['copy_steps']
-        self.eps_len = config['algo']['eps_len']  # length of epsilon greedy exploration
-        self.eps_max = config['algo']['eps_max']
-        self.eps_min = config['algo']['eps_min']
-        self.discount = config['algo']['discount']
-        self.batch_size = config['algo']['batch_size']
-
-        self.dims_hidden_neurons = config['algo']['dims_hidden_neurons']
+        self.dims_hidden_neurons = config["algo"]["dims_hidden_neurons"]
         self.dim_state = env.dim_state
         self.dims_action = env.dims_action
         self.num_device = len(self.dims_action)
 
-        self.Q = QNetwork(dim_state=self.dim_state,
-                          dims_action=self.dims_action,
-                          dims_hidden_neurons=self.dims_hidden_neurons)
-        self.Q_tar = QNetwork(dim_state=self.dim_state,
-                              dims_action=self.dims_action,
-                              dims_hidden_neurons=self.dims_hidden_neurons)
+        self.Q = QNetwork(
+            dim_state=self.dim_state,
+            dims_action=self.dims_action,
+            dims_hidden_neurons=self.dims_hidden_neurons,
+        )
+        self.Q_tar = QNetwork(
+            dim_state=self.dim_state,
+            dims_action=self.dims_action,
+            dims_hidden_neurons=self.dims_hidden_neurons,
+        )
 
         self.optimizer_Q = torch.optim.Adam(self.Q.parameters(), lr=self.lr)
         self.gradient_step = 0
@@ -46,14 +49,14 @@ class Agent:
 
         with torch.no_grad():
             Q_tar_all = self.Q_tar(sp)
-            Q_target = r + self.discount * (~done) * sum([
-                torch.max(q, axis=1, keepdim=True)[0] for q in Q_tar_all
-            ])
+            Q_target = r + self.discount * (~done) * sum(
+                [torch.max(q, axis=1, keepdim=True)[0] for q in Q_tar_all]
+            )
 
         Q_all = self.Q(s)
-        Q = sum([
-            Q_all[i].gather(1, a[:, i:i+1].long()) for i in range(self.num_device)
-        ])
+        Q = sum(
+            [Q_all[i].gather(1, a[:, i : i + 1].long()) for i in range(self.num_device)]
+        )
 
         loss_Q = torch.mean((Q - Q_target) ** 2)
 
@@ -67,7 +70,9 @@ class Agent:
     def act_probabilistic(self, state: torch.Tensor):
         # epsilon greedy:
         self.exploration_step += 1
-        first_term = self.eps_max * (self.eps_len - self.exploration_step) / self.eps_len
+        first_term = (
+            self.eps_max * (self.eps_len - self.exploration_step) / self.eps_len
+        )
         eps = max(first_term, self.eps_min)
 
         explore = np.random.binomial(1, eps)
@@ -91,11 +96,9 @@ class Agent:
 
 
 class QNetwork(nn.Module):
-    def __init__(self,
-                 dim_state: int,
-                 dims_action,
-                 dims_hidden_neurons: Tuple[int] = (64, 64)):
-
+    def __init__(
+        self, dim_state: int, dims_action, dims_hidden_neurons: Tuple[int] = (64, 64)
+    ):
         super(QNetwork, self).__init__()
         self.num_layers = len(dims_hidden_neurons)
         self.dims_action = dims_action
@@ -106,19 +109,19 @@ class QNetwork(nn.Module):
             layer = nn.Linear(dim_in, dim_out).double()
             torch.nn.init.xavier_uniform_(layer.weight)
             torch.nn.init.zeros_(layer.bias)
-            exec('self.layer{} = layer'.format(i + 1))
+            exec("self.layer{} = layer".format(i + 1))
 
         for i, dim_a in enumerate(dims_action):
             output = nn.Linear(n_neurons[-2], dim_a).double()
             torch.nn.init.xavier_uniform_(output.weight)
             torch.nn.init.zeros_(output.bias)
-            exec('self.output{} = output'.format(i))
+            exec("self.output{} = output".format(i))
 
     def forward(self, state: torch.Tensor):
         x = state
         for i in range(self.num_layers):
-            x = eval('torch.tanh(self.layer{}(x))'.format(i + 1))
+            x = eval("torch.tanh(self.layer{}(x))".format(i + 1))
         output = []
         for i in range(self.num_devices):
-            output.append(eval('self.output{}(x)'.format(i)))
+            output.append(eval("self.output{}(x)".format(i)))
         return output

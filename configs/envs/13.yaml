@@ -1,0 +1,4 @@
+env_name: "13"
+state_option: 2
+reward_option: 1
+discrete_action: False

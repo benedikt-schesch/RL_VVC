@@ -1,4 +1,3 @@
-
 class Agent:
     def __init__(self, config, env):
         # initialization of neural nets, etc.

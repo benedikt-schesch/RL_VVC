@@ -1,77 +1,79 @@
-from collections import defaultdict
-import pickle
-from vvc import offline_vvc, online_vvc
-from plot import plot_res
+from stable_baselines3.common.callbacks import (
+    BaseCallback,
+    CheckpointCallback,
+    CallbackList,
+)
+from utils import get_env, get_model
+from pathlib import Path
+import argparse
+import yaml
+from eval import evaluate
+
+class TensorboardCallback(BaseCallback):
+    """
+    Custom callback for plotting additional values in tensorboard.
+    """
+
+    def __init__(self, verbose=0):
+        super().__init__(verbose)
+
+    def _on_step(self) -> bool:
+        self.logger.record(
+            "relative_reward", self.training_env.get_attr("relative_reward")
+        )
+        if self.num_timesteps % 2000 == 0:
+            self.logger.dump(self.num_timesteps)
+        return True
+
 
 # envs = ['13', '123', '8500']
-envs = ['13']
 # algos = ['dqn', 'sac']
-algos = ['dqn']
-seeds = [0, 1, 2]
+def train(
+    env_config: dict,
+    model_config: dict,
+    logdir: Path,
+):
+    env = get_env(env_config, eval=False)
 
-for env in envs:
-    for algo in algos:
-        config = {
-                "env": env,
-                "state_option": 2,
-                "reward_option": 1,
-                "offline_split": 0.1,
-                "online_split": 0.1,
-                "replay_size": 3000,
-                "seed": 0,
-        }
+    # Create model
+    model = get_model(model_config, env, logdir)
 
-        if algo == 'sac':
-            config['algo'] = {
-                "algo": "sac",
-                "dims_hidden_neurons": (120, 120),
-                "scale_reward": 5.0,
-                "discount": 0.95,
-                "alpha": .2,
-                "batch_size": 64,
-                "lr": 0.0005,
-                "smooth": 0.99,
-                "training_steps": 100,
-            }
-        elif algo == 'dqn':
-            config['algo'] = {
-                "algo": "dqn",
-                "dims_hidden_neurons": (120, 120),
-                "scale_reward": 5.0,
-                "discount": 0.95,
-                "batch_size": 64,
-                "lr": 0.0005,
-                "copy_steps": 30,
-                "eps_len": 500,
-                "eps_max": 1.0,
-                "eps_min": 0.02,
-                "training_steps": 100,
-            }
-        else:
-            break
+    # Instantiate the agent
+    # Train the agent and display a progress bar
+    save_dir = logdir / "checkpoints"
+    callbacks = CallbackList(
+        [
+            TensorboardCallback(),
+            CheckpointCallback(save_freq=10000, save_path=str(save_dir), verbose=1),
+        ]
+    )
+    model.learn(total_timesteps=int(1), progress_bar=True, callback=callbacks)
+    model.save(logdir / "final_model.pt")
+    return model
 
-        res = defaultdict(list)
-        for seed in seeds:
-            config['seed'] = seed
-            offline_res = offline_vvc(config)
-            online_res = online_vvc(config, offline_res)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--model_config", type=str, default="configs/models/ppo.yaml")
+    parser.add_argument("--env_config", type=str, default="configs/envs/13_discrete.yaml")
+    parser.add_argument("--logdir", type=str, default="outputs/13_discrete/ppo/")
+    args = parser.parse_args()
 
-            for k, v in online_res.items():
-                res['online_' + k].append(v)
+    logdir = Path(args.logdir)
+    logdir.mkdir(parents=True, exist_ok=True)
 
-        with open('./res/data/{}_{}.pkl'.format(config['env'],
-                                                config['algo']['algo']), 'wb') as f:
-            pickle.dump(res, f)
+    with open(args.model_config, "r") as f:
+        model_config = yaml.load(f, Loader=yaml.FullLoader)
+    with open(args.env_config, "r") as f:
+        env_config = yaml.load(f, Loader=yaml.FullLoader)
 
-smoothing = 20  # smooth the curves by moving average
-# metric = 'online_reward_diff (r - rbaseline)'
-metric = 'online_max voltage violation'
+    model = train(
+        env_config=env_config,
+        model_config=model_config,
+        logdir=logdir,
+    )
 
-ylabel={'online_reward_diff (r - rbaseline)': 'Reward(RL) - Reward(baseline)',
-        'online_max voltage violation': 'Maximum voltage violation (volt)'}
-plot_res(envs=['13', '123', '8500'],
-         algos=['dqn', 'sac'],
-         metric=metric,
-         smoothing=smoothing,
-         ylabel=ylabel[metric],
-         xlabel='Timestamp (half-hour)')
+    evaluate(
+        model=model,
+        env_config=env_config,
+        logdir=logdir,
+    )

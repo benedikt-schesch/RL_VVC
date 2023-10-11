@@ -4,13 +4,13 @@ import torch
 import numpy.random as nr
 
 
-Transitions = namedtuple('Transitions', ['state', 'action', 'reward', 'next_state', 'done'])
+Transitions = namedtuple(
+    "Transitions", ["state", "action", "reward", "next_state", "done"]
+)
 
 
 class ReplayBuffer:
-    def __init__(self,
-                 replay_size,
-                 seed):
+    def __init__(self, replay_size, seed):
         nr.seed(seed)
         self.replay_size = replay_size
         self.state = deque([], maxlen=self.replay_size)
@@ -19,32 +19,22 @@ class ReplayBuffer:
         self.next_state = deque([], maxlen=self.replay_size)
         self.done = deque([], maxlen=self.replay_size)
 
-    def add(self,
-            state,
-            action,
-            reward,
-            next_state,
-            done: bool):
+    def add(self, state, action, reward, next_state, done: bool):
         self.state.append(state)
         self.action.append(action)
         self.reward.append(reward)
         self.next_state.append(next_state)
         self.done.append(done)
 
-    def sample(self,
-               batch_size,
-               lo=0,
-               hi=1):
+    def sample(self, batch_size, lo=0, hi=1):
         # randomly sample mini-batch of transitions (s, a, r, s', done)
         # from the range [lo * replay_size, hi * replay_size ]
 
         buffer_size = len(self.state)
-        window_width = round((hi-lo) * buffer_size)
+        window_width = round((hi - lo) * buffer_size)
         window_low = round(lo * buffer_size)
 
-        idx = nr.choice(window_width,
-                        size=min(window_width, batch_size),
-                        replace=False)
+        idx = nr.choice(window_width, size=min(window_width, batch_size), replace=False)
         idx += window_low
         t = Transitions
         t.state = torch.stack(list(map(self.state.__getitem__, idx)))

@@ -50,8 +50,12 @@ def int2D_to_grouponehot(indices, depths):
 
 def int3D_to_grouponehot(indices, depths):
     # analogous to int2D_to_grouponehot
-    action_sample_onehot = int2D_to_grouponehot(indices=indices[:, 0, :], depths=depths)[:, None, :]
+    action_sample_onehot = int2D_to_grouponehot(
+        indices=indices[:, 0, :], depths=depths
+    )[:, None, :]
     for ii in range(1, indices.shape[1]):
-        onehot = int2D_to_grouponehot(indices=indices[:, ii, :], depths=depths)[:, None, :]
+        onehot = int2D_to_grouponehot(indices=indices[:, ii, :], depths=depths)[
+            :, None, :
+        ]
         action_sample_onehot = torch.cat((action_sample_onehot, onehot), dim=1)
     return action_sample_onehot
