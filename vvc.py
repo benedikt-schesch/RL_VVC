@@ -72,10 +72,14 @@ def online_vvc(config, offline_rec):
     agent = offline_rec['agent']
     env = offline_rec['env']
     replay = offline_rec['replay']
-
+    env_baseline = _env_setup(config)
+    
     scale_reward = config['algo']['scale_reward']
 
     env.reset(offline=False)
+    env_baseline.reset(offline=False)
+    env_baseline.global_time = env.global_time
+
     reward_diff = []
     v_max_vio = []
 
@@ -84,6 +88,7 @@ def online_vvc(config, offline_rec):
         s = env.state
         a = agent.act_probabilistic(torch.from_numpy(s)[None, :])
         s_next, reward, done, info = env.step(a)
+        _, baseline_reward, _, _ = env_baseline.step(None)
 
         replay.add(state=torch.from_numpy(s),
                    action=torch.from_numpy(a),
@@ -93,8 +98,8 @@ def online_vvc(config, offline_rec):
         agent.update(replay)
 
         v_rl = info['v']
-
-        reward_diff.append(reward - info['baseline_reward'])
+        assert env.global_time == env_baseline.global_time
+        reward_diff.append(reward - baseline_reward)
         v_max_vio.append(_max_volt_vio(v_rl))
 
     online_res = {'reward_diff (r - rbaseline)': np.array(reward_diff),

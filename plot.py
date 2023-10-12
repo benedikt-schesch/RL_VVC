@@ -6,7 +6,7 @@ import numpy as np
 rc('font', **{'family': 'sans-serif',
               'sans-serif': ['Helvetica'],
               'size': 12})
-rc('text', usetex=True)
+# rc('text', usetex=True)
 
 
 def smooth(y, box_pts):
@@ -49,7 +49,6 @@ def plot_res(envs, algos, metric, smoothing,
             axes[ax].set_ylabel(ylabel)
         if ax == 1:
             axes[ax].set_xlabel(xlabel)
-
     plt.legend()
     plt.savefig('./res/figs/bus{}_{}.pdf'.format(envs, metric), bbox_inches='tight')
-    plt.show()
+    print('./res/figs/bus{}_{}.pdf'.format(envs, metric))

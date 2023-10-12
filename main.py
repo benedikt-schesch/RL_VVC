@@ -4,7 +4,7 @@ from vvc import offline_vvc, online_vvc
 from plot import plot_res
 
 # envs = ['13', '123', '8500']
-envs = ['13']
+envs = ['8500']
 # algos = ['dqn', 'sac']
 algos = ['dqn']
 seeds = [0, 1, 2]
@@ -64,8 +64,8 @@ for env in envs:
             pickle.dump(res, f)
 
 smoothing = 20  # smooth the curves by moving average
-# metric = 'online_reward_diff (r - rbaseline)'
-metric = 'online_max voltage violation'
+metric = 'online_reward_diff (r - rbaseline)'
+#metric = 'online_max voltage violation'
 
 ylabel={'online_reward_diff (r - rbaseline)': 'Reward(RL) - Reward(baseline)',
         'online_max voltage violation': 'Maximum voltage violation (volt)'}
