@@ -1,0 +1,4 @@
+env_name: "8500"
+state_option: 2
+reward_option: 1
+discrete_action: False

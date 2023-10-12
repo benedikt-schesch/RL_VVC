@@ -238,10 +238,16 @@ class VVCEnv:
                 reward = - (np.sum(np.round(np.abs(action - self.action_prev))) * self.coef_switching +
                             np.sum(np.abs(volt_pu - 1.0)) * self.coef_volt +
                             loss / self.basekVA * self.coef_loss)
+                info['action_reward'] = - np.sum(np.round(np.abs(action - self.action_prev))) * self.coef_switching
+                info['volt_reward'] = - np.sum(np.abs(volt_pu - 1.0)) * self.coef_volt
+                info['loss_reward'] = - loss / self.basekVA * self.coef_loss
             elif self.reward_option in ('3', '4'):
                 reward = - (np.sum(np.round(np.abs(action - self.action_prev))) * self.coef_switching +
                             np.sum(np.logical_or(volt_pu < 0.95, volt_pu > 1.05).astype(float)) * self.coef_volt +
                             loss / self.basekVA * self.coef_loss)
+                info['action_reward'] = - np.sum(np.round(np.abs(action - self.action_prev))) * self.coef_switching
+                info['volt_reward'] = - np.sum(np.logical_or(volt_pu < 0.95, volt_pu > 1.05).astype(float)) * self.coef_volt
+                info['loss_reward'] = - loss / self.basekVA * self.coef_loss
         else:
             if self.reward_option in ('1', '2'):
                 reward = - (np.sum(np.round(np.abs(action - self.action_prev))) * self.coef_switching +

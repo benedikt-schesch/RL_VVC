@@ -3,10 +3,10 @@ import pickle
 from vvc import offline_vvc, online_vvc
 from plot import plot_res
 
-# envs = ['13', '123', '8500']
-envs = ['8500']
-# algos = ['dqn', 'sac']
-algos = ['dqn']
+envs = ['13', '123', '8500']
+# envs = ['13']
+algos = ['dqn', 'sac']
+# algos = ['sac']
 seeds = [0, 1, 2]
 
 for env in envs:
