@@ -46,11 +46,11 @@ def offline_vvc(config):
                           seed=config['seed'])
     env = _env_setup(config)
     env.reset(offline=True)
-    _data2replay(env, replay, scale_reward)
+    # _data2replay(env, replay, scale_reward)
     agent = _agent_setup(config, env)
 
-    for iter in tqdm(range(RL_steps), desc="Offline training"):
-        agent.update(replay)
+    # for iter in tqdm(range(RL_steps), desc="Offline training"):
+    #     agent.update(replay)
 
     offline_res = {'agent': agent,
                    'env': env,
@@ -82,13 +82,21 @@ def online_vvc(config, offline_rec):
 
     reward_diff = []
     v_max_vio = []
+    rewards = []
+    reward_baseline = []
+    action_reward = []
+    loss_reward = []
+    volt_reward = []
+    action_reward_baseline = []
+    loss_reward_baseline = []
+    volt_reward_baseline = []
 
     for iter in tqdm(range(env.len_online - 1), desc="Online training"):
 
         s = env.state
         a = agent.act_probabilistic(torch.from_numpy(s)[None, :])
         s_next, reward, done, info = env.step(a)
-        _, baseline_reward, _, _ = env_baseline.step(None)
+        _, baseline_reward, _, info_baseline = env_baseline.step(None)
 
         replay.add(state=torch.from_numpy(s),
                    action=torch.from_numpy(a),
@@ -100,8 +108,24 @@ def online_vvc(config, offline_rec):
         v_rl = info['v']
         assert env.global_time == env_baseline.global_time
         reward_diff.append(reward - baseline_reward)
+        rewards.append(reward)
+        reward_baseline.append(baseline_reward)
+        action_reward.append(info['action_reward'])
+        volt_reward.append(info['volt_reward'])
+        loss_reward.append(info['loss_reward'])
+        action_reward_baseline.append(info_baseline['action_reward'])
+        volt_reward_baseline.append(info_baseline['volt_reward'])
+        loss_reward_baseline.append(info_baseline['loss_reward'])
         v_max_vio.append(_max_volt_vio(v_rl))
 
     online_res = {'reward_diff (r - rbaseline)': np.array(reward_diff),
-                  'max voltage violation': np.array(v_max_vio)}
+                    'reward': np.array(rewards),
+                    'action_reward': np.array(action_reward),
+                    'volt_reward': np.array(volt_reward),
+                    'loss_reward': np.array(loss_reward),
+                    'reward_baseline': np.array(reward_baseline),
+                    'max voltage violation': np.array(v_max_vio),
+                    'action_reward_baseline': np.array(action_reward_baseline),
+                    'volt_reward_baseline': np.array(volt_reward_baseline),
+                    'loss_reward_baseline': np.array(loss_reward_baseline),}
     return online_res

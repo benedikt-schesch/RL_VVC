@@ -13,7 +13,7 @@ for env in envs:
     for algo in algos:
         config = {
                 "env": env,
-                "state_option": 2,
+                "state_option": 1,
                 "reward_option": 1,
                 "offline_split": 0.1,
                 "online_split": 0.1,
@@ -64,14 +64,8 @@ for env in envs:
             pickle.dump(res, f)
 
 smoothing = 20  # smooth the curves by moving average
-metric = 'online_reward_diff (r - rbaseline)'
-#metric = 'online_max voltage violation'
 
-ylabel={'online_reward_diff (r - rbaseline)': 'Reward(RL) - Reward(baseline)',
-        'online_max voltage violation': 'Maximum voltage violation (volt)'}
 plot_res(envs=['13', '123', '8500'],
          algos=['dqn', 'sac'],
-         metric=metric,
          smoothing=smoothing,
-         ylabel=ylabel[metric],
          xlabel='Timestamp (half-hour)')
