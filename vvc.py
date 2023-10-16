@@ -81,7 +81,10 @@ def online_vvc(config, offline_rec):
     env_baseline.global_time = env.global_time
 
     reward_diff = []
+    action = []
+    action_baseline = []
     v_max_vio = []
+    v_max_vio_baseline = []
     rewards = []
     reward_baseline = []
     action_reward = []
@@ -109,6 +112,8 @@ def online_vvc(config, offline_rec):
         assert env.global_time == env_baseline.global_time
         reward_diff.append(reward - baseline_reward)
         rewards.append(reward)
+        action.append(a)
+        action_baseline.append(info_baseline['action'])
         reward_baseline.append(baseline_reward)
         action_reward.append(info['action_reward'])
         volt_reward.append(info['volt_reward'])
@@ -117,14 +122,19 @@ def online_vvc(config, offline_rec):
         volt_reward_baseline.append(info_baseline['volt_reward'])
         loss_reward_baseline.append(info_baseline['loss_reward'])
         v_max_vio.append(_max_volt_vio(v_rl))
+        v_max_vio_baseline.append(_max_volt_vio(info_baseline['v']))
+
 
     online_res = {'reward_diff (r - rbaseline)': np.array(reward_diff),
+                    'action': np.array(action),
+                    'action_baseline': np.array(action_baseline),
                     'reward': np.array(rewards),
                     'action_reward': np.array(action_reward),
                     'volt_reward': np.array(volt_reward),
                     'loss_reward': np.array(loss_reward),
                     'reward_baseline': np.array(reward_baseline),
                     'max voltage violation': np.array(v_max_vio),
+                    'max voltage violation_baseline': np.array(v_max_vio_baseline),
                     'action_reward_baseline': np.array(action_reward_baseline),
                     'volt_reward_baseline': np.array(volt_reward_baseline),
                     'loss_reward_baseline': np.array(loss_reward_baseline),}
